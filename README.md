@@ -188,7 +188,8 @@ The completed system will provide:
 The overall goal is to improve pedestrian safety and support smarter traffic monitoring using AI-driven technologies.
 
 ---
-
+## Assignment Evidence
+Azure DevOps backlog and GitHub integration evidence added for Assignment 2.
 ## License
 
 This project is licensed under the MIT License.
