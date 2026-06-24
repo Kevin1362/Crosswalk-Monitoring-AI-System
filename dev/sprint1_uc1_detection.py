@@ -1,31 +1,45 @@
 import cv2
 import numpy as np
 
-prev_frame = None
+# Background subtractor (learns scene over time)
+bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=40)
 
 def detect(frame):
-    global prev_frame
+    """
+    UC-1 improved detection (non-random, frame-based)
+    """
 
+    # Step 1: preprocess
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (9, 9), 0)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    if prev_frame is None:
-        prev_frame = gray
-        return 0, 0
+    # Step 2: foreground mask (motion detection)
+    mask = bg_subtractor.apply(blur)
 
-    # normalize difference (IMPORTANT FIX)
-    diff = cv2.absdiff(prev_frame, gray)
-    diff_sum = np.sum(diff)
-    norm_diff = diff_sum / (gray.shape[0] * gray.shape[1])
+    # Step 3: clean noise
+    kernel = np.ones((3, 3), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
+    mask = cv2.dilate(mask, kernel, iterations=2)
 
-    prev_frame = gray
+    # Step 4: find contours (moving objects)
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # 🎯 REALISTIC thresholds (normalized values)
-    if norm_diff > 25:
-        return 2, 2      # VIOLATION
-    elif norm_diff > 10:
-        return 1, 1      # WARNING
-    elif norm_diff > 3:
-        return 1, 0      # LOW activity
-    else:
-        return 0, 0      # SAFE
+    vehicles = 0
+    pedestrians = 0
+
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+
+        if area < 500:
+            continue  # ignore noise
+
+        x, y, w, h = cv2.boundingRect(cnt)
+        aspect_ratio = w / float(h)
+
+        # crude classification logic
+        if area > 1500 and aspect_ratio > 1.2:
+            vehicles += 1
+        else:
+            pedestrians += 1
+
+    return vehicles, pedestrians
