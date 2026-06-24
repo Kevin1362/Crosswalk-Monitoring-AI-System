@@ -1,12 +1,31 @@
 import cv2
-import random
+import numpy as np
+
+prev_frame = None
 
 def detect(frame):
-    """
-    Simulated detection (UC-1 MVP version)
-    """
+    global prev_frame
 
-    vehicles = random.randint(0, 2)
-    pedestrians = random.randint(0, 2)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.GaussianBlur(gray, (9, 9), 0)
 
-    return vehicles, pedestrians
+    if prev_frame is None:
+        prev_frame = gray
+        return 0, 0
+
+    # normalize difference (IMPORTANT FIX)
+    diff = cv2.absdiff(prev_frame, gray)
+    diff_sum = np.sum(diff)
+    norm_diff = diff_sum / (gray.shape[0] * gray.shape[1])
+
+    prev_frame = gray
+
+    # 🎯 REALISTIC thresholds (normalized values)
+    if norm_diff > 25:
+        return 2, 2      # VIOLATION
+    elif norm_diff > 10:
+        return 1, 1      # WARNING
+    elif norm_diff > 3:
+        return 1, 0      # LOW activity
+    else:
+        return 0, 0      # SAFE
