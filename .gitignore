@@ -217,3 +217,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 notepad .gitignore
+
+
+# Runtime databases
+*.db
+database/
