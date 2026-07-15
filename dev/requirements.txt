@@ -1,1 +1,13 @@
 opencv-python
+streamlit
+pandas
+numpy
+torch
+torchvision
+requests
+pyyaml
+tqdm
+matplotlib
+seaborn
+pillow
+ultralytics
