@@ -1,195 +1,317 @@
-# AI-Based Crosswalk Monitoring and Driver Alert System
 
-## Project Overview
+# GuideKaro Enhanced
 
-The AI-Based Crosswalk Monitoring and Driver Alert System is an intelligent traffic safety solution designed to improve pedestrian safety at crosswalks through real-time monitoring, risk assessment, and automated alerts.
+**GuideKaro** is an AI-powered crosswalk safety prototype that detects and tracks vehicles and pedestrians, estimates motion features, predicts short-term trajectories, calculates a feature-based risk score, logs events, and presents live and historical analytics.
 
-The system combines computer vision, machine learning, and decision-making logic to detect pedestrians and vehicles, evaluate potential risks, and generate appropriate warnings before dangerous situations occur.
+## What changed in this enhanced version
 
-The project follows a DevOps and MLOps development approach, enabling continuous development, testing, monitoring, and improvement throughout the project lifecycle.
+The original prototype mainly counted detections. This version adds:
 
----
+- YOLOv8 object detection
+- ByteTrack tracking with persistent object IDs
+- Vehicle speed estimation
+- Distance-to-crosswalk estimation
+- Pedestrian–vehicle separation
+- Movement direction (`TOWARD_CROSSWALK`, `AWAY_FROM_CROSSWALK`, `STATIONARY`)
+- Short-term trajectory prediction
+- Approximate time-to-collision (TTC)
+- Feature-based risk engine
+- Track-level database records
+- Expanded Streamlit dashboard
+- FPS and latency metrics
+- Evaluation script for precision / recall when labelled ground truth is available
+- Failure-case testing plan
+- YAML configuration
+- Exception handling and application logging
+- Pytest unit tests
+- Docker packaging
+- Grafana Cloud monitoring documentation
+- Full project architecture diagram
 
-## Project Objectives
+## Project structure
 
-The main objectives of the system are to:
+```text
+GuideKaro_Enhanced/
+├── assets/
+├── config/
+│   └── settings.yaml
+├── core/
+│   ├── config.py
+│   ├── geometry.py
+│   ├── logging_setup.py
+│   ├── risk_engine.py
+│   └── trajectory.py
+├── database/
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── DATASET_AND_TESTING.md
+│   ├── EVALUATION_METRICS.md
+│   ├── FAILURE_CASES.md
+│   └── guidekaro_full_architecture.png
+├── evaluation/
+│   ├── evaluate_video.py
+│   └── failure_case_template.csv
+├── monitoring/grafana/
+│   └── README.md
+├── scripts/
+├── tests/
+├── videos/
+├── dashboard.py
+├── enhanced_video_runner.py
+├── event_logger.py
+├── Dockerfile
+├── docker-compose.yml
+└── requirements.txt
+```
 
-- Detect pedestrians, vehicles, and crosswalk zones in real time  
-- Assess risk levels based on vehicle speed, distance, and pedestrian activity  
-- Generate early warnings for potentially unsafe situations  
-- Support safe vehicle decision-making near crosswalks  
-- Track and record traffic violations for analysis and reporting  
-- Provide monitoring and logging capabilities for system evaluation  
+## 1. Windows setup
 
----
+Open PowerShell in the project folder.
 
-## System Use Cases
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
 
-### UC-1: Early Warning System
+## 2. Run tracking on a real video
 
-The system continuously monitors approaching vehicles and pedestrian activity around crosswalks.
+Put a video in `videos/`, for example:
 
-When a potentially dangerous situation is detected, an early warning alert is generated to help prevent accidents before they occur.
+```text
+videos/real_crosswalk.mp4
+```
 
----
+Run:
 
-### UC-2: Safe Decision Support System
+```powershell
+python enhanced_video_runner.py --source ".\videos\real_crosswalk.mp4" --display --loop
+```
 
-Based on pedestrian presence, vehicle position, and risk levels, the system determines the safest action:
+The default tracker is ByteTrack.
 
-- Proceed  
-- Slow Down  
-- Stop  
-- Hold Position  
+You can explicitly specify:
 
-This decision logic helps improve safety at pedestrian crossings.
+```powershell
+python enhanced_video_runner.py --source ".\videos\real_crosswalk.mp4" --tracker bytetrack.yaml --display
+```
 
----
+Or try BoT-SORT:
 
-### UC-3: Violation Detection and Tracking
+```powershell
+python enhanced_video_runner.py --source ".\videos\real_crosswalk.mp4" --tracker botsort.yaml --display
+```
 
-The system identifies unsafe driving behavior, including:
+## 3. Run webcam
 
-- Failure to yield to pedestrians  
-- Entering occupied crosswalks  
-- Ignoring crosswalk safety rules  
+```powershell
+python enhanced_video_runner.py --source 0 --display
+```
 
-All detected violations are recorded for future analysis and reporting.
+## 4. Start dashboard
 
----
+Use a second terminal:
 
-## System Architecture
+```powershell
+.venv\Scripts\activate
+python -m streamlit run dashboard.py
+```
 
-The solution follows a layered architecture consisting of three main components:
+Open:
 
-### Detection Layer
-Responsible for:
-- Vehicle detection  
-- Pedestrian detection  
-- Crosswalk identification  
+```text
+http://localhost:8501
+```
 
-### Intelligence Layer
-Responsible for:
-- Risk assessment  
-- Distance estimation  
-- Speed estimation  
-- Decision-making logic  
+## Dashboard sections
 
-### Monitoring Layer
-Responsible for:
-- Alert generation  
-- Event logging  
-- Performance monitoring  
-- Dashboard visualization  
+- **Live Monitor**: tracked frame, risk, track ID, speed, distance, pedestrian separation, TTC, FPS and latency.
+- **Analytics**: risk trends, speed-distance behavior, movement directions, separation distribution and highest-risk tracks.
+- **Performance**: average FPS, average/P95 latency, unique tracks.
+- **Failure Cases**: validation matrix for poor lighting, rain, occlusion, overlapping vehicles, motion blur and camera shake.
+- **Event Log**: complete feature-based event history.
+- **Reports**: CSV export and summary.
 
----
+## Risk score
 
-## Project Structure
-Crosswalk-Monitoring-AI-System/
-├── README.md
-├── orchestrator.ipynb
-├── data-collection/
-├── training/
-│ └── trained-model-v0.h5
-├── dev/
-│ └── dev-run-v0.py
-└── documentation/
+The risk engine combines normalized features:
 
----
+```text
+confidence
++ vehicle speed
++ distance to crosswalk
++ pedestrian–vehicle separation
++ movement direction
++ predicted trajectory conflict
++ crosswalk occupancy
++ time-to-collision
++ environment flags
+```
 
-## Technologies Used
+The weights and thresholds are in:
 
-### Development
-- Python  
-- OpenCV  
-- YOLO  
+```text
+config/settings.yaml
+```
 
-### DevOps & MLOps
-- Azure DevOps  
-- GitHub  
-- Git Version Control  
+Important: the score is a **prototype safety indicator**, not a calibrated probability of collision.
 
-### Data Storage
-- SQLite  
-- CSV Files  
+## Speed and distance calibration
 
-### Monitoring & Reporting
-- Logging Frameworks  
-- Performance Monitoring  
-- Dashboard Visualization  
+The default implementation converts pixel motion into metres using:
 
----
+```yaml
+tracking:
+  pixels_per_meter: 22.0
+```
 
-## Sprint Roadmap
+This must be calibrated for the actual camera.
 
-### Sprint 0 – Project Setup & Planning
-- Azure DevOps configuration  
-- GitHub repository setup  
-- Literature review  
-- Dataset selection  
-- MLOps architecture planning  
+For stronger real-world accuracy, replace the simple scale with:
+- a measured ground-plane reference,
+- camera calibration,
+- or a homography / perspective transform.
 
-### Sprint 1 – Detection System Development
-- Vehicle detection  
-- Pedestrian detection  
-- Crosswalk identification  
+## Evaluation
 
-### Sprint 2 – Risk Analysis Engine
-- Speed estimation  
-- Distance estimation  
-- Risk scoring  
+Runtime-only evaluation:
 
-### Sprint 3 – Decision Support & Alerts
-- Decision engine  
-- Alert generation  
-- Visual warning overlays  
+```powershell
+python evaluation\evaluate_video.py --video ".\videos\real_crosswalk.mp4"
+```
 
-### Sprint 4 – DevOps Monitoring & Security
-- Centralized monitoring and logging  
-- System health monitoring  
-- Security and data integrity validation  
-- Real-time event tracking  
-- Documentation and reporting  
+This reports:
+- processed frames
+- average FPS
+- average latency
+- P95 latency
 
----
+### Precision and recall
 
-## Current Project Status
+Precision and recall require labelled ground-truth frames.
 
-### Completed
-- Repository setup  
-- Sprint planning  
-- Azure DevOps project structure  
-- MLOps architecture design  
-- Use case definition  
+Provide YOLO-format labels such as:
 
-### In Progress
-- Detection module development  
-- Risk analysis implementation  
-- Decision engine development  
+```text
+labels/
+├── frame_000001.txt
+├── frame_000002.txt
+└── ...
+```
 
-### Planned
-- Monitoring dashboard  
-- Security validation layer  
-- Performance monitoring  
-- Final system testing  
+Then:
 
----
+```powershell
+python evaluation\evaluate_video.py `
+  --video ".\videos\real_crosswalk.mp4" `
+  --labels-dir ".\labels"
+```
 
-## Expected Outcomes
+Do not claim precision/recall values when no ground-truth annotations were used.
 
-The completed system will provide:
+## Automated tests
 
-- Real-time pedestrian and vehicle monitoring  
-- Intelligent risk assessment  
-- Automated safety alerts  
-- Traffic violation tracking  
-- Monitoring and reporting capabilities  
+```powershell
+python -m pytest -q
+```
 
-The overall goal is to improve pedestrian safety and support smarter traffic monitoring using AI-driven technologies.
+Tests currently validate:
+- low-risk safe behavior
+- high-risk conflict behavior
+- trajectory prediction
 
----
-## Assignment Evidence
-Azure DevOps backlog and GitHub integration evidence added for Assignment 2.
-## License
+## Docker
 
-This project is licensed under the MIT License.
+Build:
+
+```powershell
+docker build -t guidekaro-enhanced .
+```
+
+Run:
+
+```powershell
+docker run --rm -p 8501:8501 `
+  -v "${PWD}\database:/app/database" `
+  -v "${PWD}\assets:/app/assets" `
+  guidekaro-enhanced
+```
+
+Or:
+
+```powershell
+docker compose up --build
+```
+
+## Grafana Cloud / observability
+
+GuideKaro writes application logs to:
+
+```text
+logs/guidekaro.log
+```
+
+and also writes logs to the console, which makes them visible in Docker logs.
+
+See:
+
+```text
+monitoring/grafana/README.md
+```
+
+for the recommended Grafana Cloud integration approach.
+
+## Architecture
+
+See:
+
+- `docs/guidekaro_full_architecture.png`
+- `docs/ARCHITECTURE.md`
+
+The architecture includes:
+- cameras and video sources
+- AI/computer-vision processing
+- tracking and risk engine
+- backend/application layer
+- dashboard
+- SQLite storage
+- alerts
+- analytics
+- Docker deployment
+- logging and monitoring
+- Grafana Cloud observability
+
+## Failure-case evidence
+
+A complete project should include evidence for:
+- poor lighting
+- heavy rain / snow
+- occluded pedestrians
+- multiple overlapping vehicles
+- motion blur
+- camera shake
+
+Use:
+
+```text
+evaluation/failure_case_template.csv
+```
+
+to record test results.
+
+## Reproducibility checklist
+
+Before submission, record:
+- Python version
+- model file
+- tracker
+- confidence threshold
+- camera/video resolution
+- hardware
+- pixels-per-meter calibration
+- test video source/licence
+- number of labelled frames
+- precision/recall methodology
+- FPS and latency
+- failure cases

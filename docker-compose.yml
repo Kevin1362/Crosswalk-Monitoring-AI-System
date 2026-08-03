@@ -1,0 +1,18 @@
+
+services:
+  guidekaro-dashboard:
+    build: .
+    image: guidekaro-enhanced:latest
+    container_name: guidekaro-dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./database:/app/database
+      - ./assets:/app/assets
+      - ./logs:/app/logs
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
