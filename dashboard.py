@@ -1,7 +1,9 @@
-
 from __future__ import annotations
+from core.config import load_settings
+from core.logging_setup import configure_logging
 
 import io
+import os
 import sqlite3
 from pathlib import Path
 
@@ -13,8 +15,77 @@ from streamlit_autorefresh import st_autorefresh
 
 
 BASE_DIR = Path(__file__).resolve().parent
+SETTINGS = load_settings(BASE_DIR / "config" / "settings.yaml")
+LOGGER = configure_logging(BASE_DIR / "logs" / "guidekaro.log")
 DB_PATH = BASE_DIR / "database" / "uc1_events.db"
 FRAME_PATH = BASE_DIR / "assets" / "latest_frame.jpg"
+
+
+# Sensitive values are read from environment variables instead of being
+# hardcoded in the source code. The dashboard never displays or logs the
+# actual DB password.
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value in (None, ""):
+        return float(default)
+    try:
+        return float(value)
+    except ValueError:
+        LOGGER.warning(
+            "Invalid numeric environment variable %s; using default %s",
+            name,
+            default,
+        )
+        return float(default)
+
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value in (None, ""):
+        return int(default)
+    try:
+        return int(value)
+    except ValueError:
+        LOGGER.warning(
+            "Invalid integer environment variable %s; using default %s",
+            name,
+            default,
+        )
+        return int(default)
+
+
+DEFAULT_FEATURES = (
+    "risk_score,vehicle_speed_kmh,distance_to_crosswalk_m,"
+    "pedestrian_vehicle_distance_m,confidence,ttc_seconds"
+)
+
+FEATURE_NAMES = [
+    item.strip()
+    for item in os.getenv("FEATURE_NAMES", DEFAULT_FEATURES).split(",")
+    if item.strip()
+]
+
+MODEL_CONFIDENCE_THRESHOLD = _env_float(
+    "MODEL_CONFIDENCE_THRESHOLD",
+    SETTINGS.get("detection", {}).get("confidence", 0.35),
+)
+
+PIXELS_PER_METER = _env_float(
+    "PIXELS_PER_METER",
+    SETTINGS.get("tracking", {}).get("pixels_per_meter", 22.0),
+)
+
+EXPECTED_ACCURACY = _env_float("EXPECTED_ACCURACY", 0.90)
+NUM_EPOCHS = _env_int("NUM_EPOCHS", 50)
+EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME", "guidekaro_enhanced")
+EXPERIMENT_VERSION = os.getenv("EXPERIMENT_VERSION", "1.0")
+
+# Workshop DB variables. GuideKaro currently stores events in SQLite, but
+# these variables demonstrate Docker secrets/environment-variable management.
+DB_USER = os.getenv("DB_USER", "")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5432")
 
 st.set_page_config(
     page_title="GuideKaro Enhanced Dashboard",
@@ -41,6 +112,7 @@ INTERSECTIONS = [
 
 def load_events() -> pd.DataFrame:
     if not DB_PATH.exists():
+        LOGGER.warning("Event database not found at %s", DB_PATH)
         return pd.DataFrame()
     try:
         with sqlite3.connect(DB_PATH) as connection:
@@ -49,6 +121,7 @@ def load_events() -> pd.DataFrame:
                 connection,
             )
     except Exception as exc:
+        LOGGER.exception("Unable to read GuideKaro event database")
         st.error(f"Database error: {exc}")
         return pd.DataFrame()
 
@@ -302,11 +375,74 @@ def render_reports(df: pd.DataFrame) -> None:
     st.json(summary)
 
 
+
+def render_assignment_configuration() -> None:
+    """Show safe assignment configuration without exposing secret values."""
+    with st.sidebar:
+        st.divider()
+        st.subheader("Experiment Configuration")
+        st.write(f"**Experiment:** {EXPERIMENT_NAME}")
+        st.write(f"**Version:** {EXPERIMENT_VERSION}")
+        st.write(f"**Expected accuracy target:** {EXPECTED_ACCURACY:.0%}")
+        st.write(f"**Training epochs:** {NUM_EPOCHS}")
+        st.write(f"**Detection confidence:** {MODEL_CONFIDENCE_THRESHOLD:.2f}")
+        st.write(f"**Configured features:** {len(FEATURE_NAMES)}")
+
+        with st.expander("Secrets Management Status"):
+            db_user_configured = bool(DB_USER)
+            db_password_configured = bool(DB_PASSWORD)
+
+            st.write(
+                "DB username: "
+                + ("✅ Configured" if db_user_configured else "⚠️ Not configured")
+            )
+            st.write(
+                "DB password: "
+                + ("✅ Configured securely" if db_password_configured else "⚠️ Not configured")
+            )
+            st.write(f"DB host: {DB_HOST}")
+            st.write(f"DB port: {DB_PORT}")
+            st.caption(
+                "Sensitive credentials are read from environment variables. "
+                "The password value is never displayed."
+            )
+
+        st.caption(
+            "Expected accuracy and epoch values are experiment configuration "
+            "targets, not measured runtime model accuracy."
+        )
+
 def main() -> None:
     st.title("GuideKaro — Enhanced AI Crosswalk Safety Dashboard")
     st.caption(
         "Tracking • speed estimation • trajectory prediction • feature-based risk analysis • analytics • reporting"
     )
+
+    # Log startup once per Streamlit browser session. Only configuration
+    # presence is logged; secret values are never written to the log.
+    if "assignment9_startup_logged" not in st.session_state:
+        LOGGER.info(
+            "GuideKaro dashboard started | experiment=%s | version=%s",
+            EXPERIMENT_NAME,
+            EXPERIMENT_VERSION,
+        )
+        LOGGER.info(
+            "Environment configuration loaded | "
+            "db_user_configured=%s | db_password_configured=%s | "
+            "db_host=%s | db_port=%s | feature_count=%s | "
+            "confidence_threshold=%.2f | expected_accuracy=%.2f | epochs=%s",
+            bool(DB_USER),
+            bool(DB_PASSWORD),
+            DB_HOST,
+            DB_PORT,
+            len(FEATURE_NAMES),
+            MODEL_CONFIDENCE_THRESHOLD,
+            EXPECTED_ACCURACY,
+            NUM_EPOCHS,
+        )
+        st.session_state["assignment9_startup_logged"] = True
+
+    render_assignment_configuration()
 
     df = normalize(load_events())
     if df.empty:

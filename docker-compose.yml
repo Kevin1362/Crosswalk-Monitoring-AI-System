@@ -1,16 +1,37 @@
-
 services:
   guidekaro-dashboard:
     build: .
-    image: guidekaro-enhanced:latest
+    image: kevin1362/guidekaro-dashboard:assignment9
     container_name: guidekaro-dashboard
+
     ports:
       - "8501:8501"
+
+    env_file:
+      - .env
+
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+
+      FEATURE_NAMES: ${FEATURE_NAMES}
+      MODEL_CONFIDENCE_THRESHOLD: ${MODEL_CONFIDENCE_THRESHOLD}
+      PIXELS_PER_METER: ${PIXELS_PER_METER}
+
+      EXPECTED_ACCURACY: ${EXPECTED_ACCURACY}
+      NUM_EPOCHS: ${NUM_EPOCHS}
+      EXPERIMENT_NAME: ${EXPERIMENT_NAME}
+      EXPERIMENT_VERSION: ${EXPERIMENT_VERSION}
+
     volumes:
       - ./database:/app/database
       - ./assets:/app/assets
       - ./logs:/app/logs
+
     restart: unless-stopped
+
     logging:
       driver: json-file
       options:

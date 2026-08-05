@@ -1,0 +1,88 @@
+title = "GuideKaro GitLeaks Configuration"
+
+[extend]
+useDefault = true
+
+
+[[rules]]
+id = "guidekaro-db-user"
+description = "Hardcoded Database User"
+regex = '''(?i)\bDB_USER\b\s*=\s*["'][^"'\r\n]+["']'''
+tags = ["dbuser"]
+
+
+[[rules]]
+id = "guidekaro-db-password"
+description = "Hardcoded Database Password"
+regex = '''(?i)\bDB_PASSWORD\b\s*=\s*["'][^"'\r\n]+["']'''
+tags = ["dbpassword"]
+
+
+[[rules]]
+id = "guidekaro-db-host"
+description = "Hardcoded Database Host"
+regex = '''(?i)\bDB_HOST\b\s*=\s*["'][^"'\r\n]+["']'''
+tags = ["dbhost"]
+
+
+[[rules]]
+id = "guidekaro-db-port"
+description = "Hardcoded Database Port"
+regex = '''(?i)\bDB_PORT\b\s*=\s*["']?[0-9]{1,5}["']?'''
+tags = ["dbport"]
+
+
+[[rules]]
+id = "guidekaro-api-key"
+description = "Hardcoded API Key"
+regex = '''(?i)\bAPI_KEY\b\s*=\s*["'][A-Za-z0-9_-]{10,}["']'''
+tags = ["apikey"]
+
+
+[[rules]]
+id = "guidekaro-feature-names"
+description = "Hardcoded Feature Names"
+regex = '''(?i)\bFEATURE_NAMES\b\s*=\s*["'][^"'\r\n]+["']'''
+tags = ["features"]
+
+
+[[rules]]
+id = "guidekaro-model-confidence"
+description = "Hardcoded Model Confidence Threshold"
+regex = '''(?i)\bMODEL_CONFIDENCE_THRESHOLD\b\s*=\s*["']?[0-9.]+["']?'''
+tags = ["hyperparameter"]
+
+
+[[rules]]
+id = "guidekaro-pixels-per-meter"
+description = "Hardcoded Pixels Per Meter"
+regex = '''(?i)\bPIXELS_PER_METER\b\s*=\s*["']?[0-9.]+["']?'''
+tags = ["hyperparameter"]
+
+
+[[rules]]
+id = "guidekaro-expected-accuracy"
+description = "Hardcoded Expected Accuracy"
+regex = '''(?i)\bEXPECTED_ACCURACY\b\s*=\s*["']?[0-9.]+["']?'''
+tags = ["accuracy"]
+
+
+[[rules]]
+id = "guidekaro-num-epochs"
+description = "Hardcoded Number of Epochs"
+regex = '''(?i)\bNUM_EPOCHS\b\s*=\s*["']?[0-9]+["']?'''
+tags = ["epochs"]
+
+
+[[rules]]
+id = "guidekaro-experiment-name"
+description = "Hardcoded Experiment Name"
+regex = '''(?i)\bEXPERIMENT_NAME\b\s*=\s*["'][A-Za-z0-9_.-]+["']'''
+tags = ["experiment"]
+
+
+[[rules]]
+id = "guidekaro-experiment-version"
+description = "Hardcoded Experiment Version"
+regex = '''(?i)\bEXPERIMENT_VERSION\b\s*=\s*["'][A-Za-z0-9_.-]+["']'''
+tags = ["experiment-version"]
