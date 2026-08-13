@@ -1,0 +1,52 @@
+
+project:
+  name: GuideKaro
+  intersection: "King St & Victoria St"
+  weather: "Unknown"
+  road_condition: "Unknown"
+  visibility: "Unknown"
+
+detection:
+  model: "yolov8n.pt"
+  confidence: 0.35
+  tracker: "bytetrack.yaml"
+  classes:
+    person: [0]
+    vehicles: [1, 2, 3, 5, 7]
+  log_interval_seconds: 2.0
+
+tracking:
+  history_points: 12
+  prediction_horizon_seconds: 1.5
+  pixels_per_meter: 22.0
+  stale_frames: 30
+
+crosswalk:
+  # Relative polygon points: x fraction, y fraction
+  roi:
+    - [0.20, 0.55]
+    - [0.80, 0.55]
+    - [0.95, 0.95]
+    - [0.05, 0.95]
+
+risk:
+  safe_max: 39
+  warning_max: 69
+  reference_speed_kmh: 60
+  reference_crosswalk_distance_m: 20
+  reference_separation_m: 12
+  reference_ttc_s: 5
+  weights:
+    confidence: 0.08
+    speed: 0.18
+    crosswalk_distance: 0.18
+    separation: 0.20
+    direction: 0.10
+    trajectory: 0.12
+    occupancy: 0.08
+    ttc: 0.04
+    environment: 0.02
+
+dashboard:
+  auto_refresh_seconds: 3
+  max_events: 5000

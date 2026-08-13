@@ -1,18 +1,58 @@
-
 services:
+
   guidekaro-dashboard:
-    build: .
-    image: guidekaro-enhanced:latest
+
+    build:
+      context: .
+
+    image: kevin1362/guidekaro-dashboard:assignment9
+
     container_name: guidekaro-dashboard
+
     ports:
       - "8501:8501"
+
+    environment:
+
+      # Database environment configuration
+      DB_USER: ${DB_USER}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+
+      # Docker Secret location
+      DB_PASSWORD_FILE: /run/secrets/db_password
+
+      # EDA feature configuration
+      FEATURE_NAMES: ${FEATURE_NAMES}
+
+      # Model hyperparameters
+      MODEL_CONFIDENCE_THRESHOLD: ${MODEL_CONFIDENCE_THRESHOLD}
+      PIXELS_PER_METER: ${PIXELS_PER_METER}
+
+      # Experiment configuration
+      EXPECTED_ACCURACY: ${EXPECTED_ACCURACY}
+      NUM_EPOCHS: ${NUM_EPOCHS}
+      EXPERIMENT_NAME: ${EXPERIMENT_NAME}
+      EXPERIMENT_VERSION: ${EXPERIMENT_VERSION}
+
+    secrets:
+      - db_password
+
     volumes:
       - ./database:/app/database
       - ./assets:/app/assets
       - ./logs:/app/logs
+
     restart: unless-stopped
+
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+
+
+secrets:
+
+  db_password:
+    file: ./.secrets/db_password.txt

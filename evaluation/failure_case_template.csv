@@ -1,0 +1,7 @@
+scenario,video_file,lighting,weather,occlusion,traffic_density,motion_blur,camera_shake,notes,result
+poor_lighting,,,,,,,,,
+heavy_rain,,,,,,,,,
+occluded_pedestrian,,,,,,,,,
+multiple_overlapping_vehicles,,,,,,,,,
+motion_blur,,,,,,,,,
+camera_shake,,,,,,,,,
