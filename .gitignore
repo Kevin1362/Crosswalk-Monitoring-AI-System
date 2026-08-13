@@ -8,3 +8,14 @@ evaluation/results.csv
 yolov8*.pt
 videos/*.mp4
 .env
+# GitLeaks local files
+gitleaks.exe
+gitleaks-report.json
+
+# Secret/environment files
+.env
+.env.*
+!.env.example
+.agents/
+
+.secrets/
