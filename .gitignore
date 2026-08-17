@@ -16,6 +16,3 @@ gitleaks-report.json
 .env
 .env.*
 !.env.example
-.agents/
-
-.secrets/

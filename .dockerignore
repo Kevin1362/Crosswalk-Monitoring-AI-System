@@ -14,4 +14,3 @@ gitleaks.exe
 gitleaks-report.json
 
 logs/*.log
-.secrets/

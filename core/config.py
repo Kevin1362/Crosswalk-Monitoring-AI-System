@@ -21,64 +21,26 @@ def _int_env(name: str, default: int) -> int:
     return int(value)
 
 
-def _secret_or_env(name: str, default: str = "") -> str:
-    """
-    Read a sensitive value from a Docker Secret first.
-
-    Example:
-        DB_PASSWORD_FILE=/run/secrets/db_password
-
-    If a Docker Secret is not available, fall back to the
-    normal environment variable.
-    """
-    secret_file = os.getenv(f"{name}_FILE")
-
-    if secret_file:
-        secret_path = Path(secret_file)
-
-        if secret_path.is_file():
-            try:
-                return secret_path.read_text(
-                    encoding="utf-8"
-                ).strip()
-            except OSError:
-                pass
-
-    return os.getenv(name, default)
-
-
 def load_settings(path: str | Path) -> dict[str, Any]:
     path = Path(path)
 
     with path.open("r", encoding="utf-8") as handle:
         settings = yaml.safe_load(handle) or {}
 
-    # --------------------------------------------------
-    # GuideKaro detection configuration
-    # --------------------------------------------------
-
+    # Override selected GuideKaro configuration using environment variables.
     settings.setdefault("detection", {})
-
     settings["detection"]["confidence"] = _float_env(
         "MODEL_CONFIDENCE_THRESHOLD",
         settings["detection"].get("confidence", 0.35),
     )
 
-    # --------------------------------------------------
-    # Tracking configuration
-    # --------------------------------------------------
-
     settings.setdefault("tracking", {})
-
     settings["tracking"]["pixels_per_meter"] = _float_env(
         "PIXELS_PER_METER",
         settings["tracking"].get("pixels_per_meter", 22.0),
     )
 
-    # --------------------------------------------------
-    # EDA and experiment configuration
-    # --------------------------------------------------
-
+    # Assignment experiment configuration.
     feature_names = os.getenv(
         "FEATURE_NAMES",
         "risk_score,vehicle_speed_kmh,distance_to_crosswalk_m,"
@@ -91,52 +53,19 @@ def load_settings(path: str | Path) -> dict[str, Any]:
             for item in feature_names.split(",")
             if item.strip()
         ],
-        "expected_accuracy": _float_env(
-            "EXPECTED_ACCURACY",
-            0.90,
-        ),
-        "num_epochs": _int_env(
-            "NUM_EPOCHS",
-            50,
-        ),
-        "name": os.getenv(
-            "EXPERIMENT_NAME",
-            "guidekaro_enhanced",
-        ),
-        "version": os.getenv(
-            "EXPERIMENT_VERSION",
-            "1.0",
-        ),
+        "expected_accuracy": _float_env("EXPECTED_ACCURACY", 0.90),
+        "num_epochs": _int_env("NUM_EPOCHS", 50),
+        "name": os.getenv("EXPERIMENT_NAME", "guidekaro_enhanced"),
+        "version": os.getenv("EXPERIMENT_VERSION", "1.0"),
     }
 
-    # --------------------------------------------------
-    # Database / Secrets Management configuration
-    # --------------------------------------------------
-    # GuideKaro currently uses SQLite.
-    # These variables demonstrate secure configuration
-    # management required by the DevOps assignment.
-    #
-    # DB_PASSWORD is loaded from Docker Secret when
-    # DB_PASSWORD_FILE is available.
-    # --------------------------------------------------
-
+    # Workshop DB variables.
+    # GuideKaro itself currently uses SQLite.
     settings["database_environment"] = {
-        "user": os.getenv(
-            "DB_USER",
-            "",
-        ),
-        "password": _secret_or_env(
-            "DB_PASSWORD",
-            "",
-        ),
-        "host": os.getenv(
-            "DB_HOST",
-            "localhost",
-        ),
-        "port": os.getenv(
-            "DB_PORT",
-            "5432",
-        ),
+        "user": os.getenv("DB_USER", ""),
+        "password": os.getenv("DB_PASSWORD", ""),
+        "host": os.getenv("DB_HOST", "localhost"),
+        "port": os.getenv("DB_PORT", "5432"),
     }
 
     return settings
