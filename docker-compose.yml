@@ -1,9 +1,8 @@
 services:
-
   guidekaro-dashboard:
-
     build:
       context: .
+      dockerfile: Dockerfile
 
     image: kevin1362/guidekaro-dashboard:assignment9
 
@@ -11,39 +10,27 @@ services:
 
     ports:
       - "8501:8501"
+      - "8000:8000"
 
     environment:
-
-      # Database environment configuration
-      DB_USER: ${DB_USER}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-
-      # Docker Secret location
-      DB_PASSWORD_FILE: /run/secrets/db_password
-
-      # EDA feature configuration
-      FEATURE_NAMES: ${FEATURE_NAMES}
-
-      # Model hyperparameters
-      MODEL_CONFIDENCE_THRESHOLD: ${MODEL_CONFIDENCE_THRESHOLD}
-      PIXELS_PER_METER: ${PIXELS_PER_METER}
-
-      # Experiment configuration
-      EXPECTED_ACCURACY: ${EXPECTED_ACCURACY}
-      NUM_EPOCHS: ${NUM_EPOCHS}
-      EXPERIMENT_NAME: ${EXPERIMENT_NAME}
-      EXPERIMENT_VERSION: ${EXPERIMENT_VERSION}
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_USER: guidekaro_local_user
+      EXPECTED_ACCURACY: "0.90"
+      EXPERIMENT_NAME: guidekaro_enhanced
+      EXPERIMENT_VERSION: "1.0"
+      FEATURE_NAMES: risk_score,vehicle_speed_kmh,distance_to_crosswalk_m,pedestrian_vehicle_distance_m,confidence,ttc_seconds
+      MODEL_CONFIDENCE_THRESHOLD: "0.35"
+      NUM_EPOCHS: "50"
+      PIXELS_PER_METER: "22.0"
 
     secrets:
-      - db_password
+      - guidekaro_secret
 
     volumes:
       - ./database:/app/database
       - ./assets:/app/assets
       - ./logs:/app/logs
-
-    restart: unless-stopped
 
     logging:
       driver: json-file
@@ -51,8 +38,8 @@ services:
         max-size: "10m"
         max-file: "3"
 
+    restart: unless-stopped
 
 secrets:
-
-  db_password:
-    file: ./.secrets/db_password.txt
+  guidekaro_secret:
+    file: ./secrets/guidekaro_secret.txt
