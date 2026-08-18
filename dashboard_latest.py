@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 from PIL import Image, UnidentifiedImageError
 from streamlit_autorefresh import st_autorefresh
@@ -33,7 +34,31 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+# --------------------------------------------------
+# GuideKaro MLOps API Configuration
+# --------------------------------------------------
 
+API_URL = "http://localhost:8000"
+
+
+def check_mlops_api():
+    try:
+        response = requests.get(
+            f"{API_URL}/health",
+            timeout=3
+        )
+
+        if response.status_code == 200:
+            return True, response.json()
+
+        return False, {
+            "error": f"API returned HTTP {response.status_code}"
+        }
+
+    except requests.RequestException as exc:
+        return False, {
+            "error": str(exc)
+        }
 # Presentation-friendly styling.
 st.markdown(
     """
@@ -359,36 +384,191 @@ def style_plot(fig):
     fig.update_annotations(font=dict(size=18))
     return fig
 
-
 def filter_df(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
 
     with st.sidebar:
+        # --------------------------------------------------
+        # GuideKaro Controls
+        # --------------------------------------------------
         st.header("GuideKaro controls")
+
         refresh = st.toggle("Auto-refresh", True)
+
         if refresh:
-            st_autorefresh(interval=3000, key="refresh")
-        choices = sorted(set(INTERSECTIONS) | set(df["intersection"].dropna().astype(str)))
-        selected = st.multiselect("Intersection", choices)
+            st_autorefresh(
+                interval=3000,
+                key="refresh"
+            )
+
+        choices = sorted(
+            set(INTERSECTIONS)
+            | set(df["intersection"].dropna().astype(str))
+        )
+
+        selected = st.multiselect(
+            "Intersection",
+            choices
+        )
+
         states = st.multiselect(
             "Risk status",
             ["SAFE", "WARNING", "VIOLATION"],
             default=["SAFE", "WARNING", "VIOLATION"],
         )
+
         directions = st.multiselect(
             "Movement direction",
-            sorted(df["movement_direction"].dropna().astype(str).unique()),
+            sorted(
+                df["movement_direction"]
+                .dropna()
+                .astype(str)
+                .unique()
+            ),
         )
-        st.caption("Use these filters to focus on a specific intersection, risk state, or direction.")
+
+        st.caption(
+            "Use these filters to focus on a specific "
+            "intersection, risk state, or direction."
+        )
+
+        # --------------------------------------------------
+        # MLOps Services
+        # --------------------------------------------------
+        st.divider()
+
+        st.subheader("MLOps Services")
+
+        api_ok, api_status = check_mlops_api()
+
+        if api_ok:
+            st.success("MLOps API: Online")
+        else:
+            st.error("MLOps API: Offline")
+            st.caption(
+                api_status.get(
+                    "error",
+                    "Unable to connect"
+                )
+            )
+
+        # --------------------------------------------------
+        # MLOps Pipeline Tests
+        # --------------------------------------------------
+        st.markdown("#### Pipeline Tests")
+
+        # UC-01
+        if st.button(
+            "Test UC-01 Pipeline",
+            use_container_width=True
+        ):
+            try:
+                response = requests.post(
+                    f"{API_URL}/api/uc1/pipeline/run",
+                    json={
+                        "video_source": "demo_video.mp4",
+                        "location_id": "intersection_01"
+                    },
+                    timeout=10
+                )
+
+                if response.status_code == 200:
+                    st.success("UC-01 Successful")
+                    st.json(response.json())
+                else:
+                    st.error(
+                        f"UC-01 failed: "
+                        f"HTTP {response.status_code}"
+                    )
+
+            except requests.RequestException as exc:
+                st.error(
+                    f"UC-01 API error: {exc}"
+                )
+
+        # UC-02
+        if st.button(
+            "Test UC-02 Pipeline",
+            use_container_width=True
+        ):
+            try:
+                response = requests.post(
+                    f"{API_URL}/api/uc2/pipeline/run",
+                    json={
+                        "vehicle_speed": 45,
+                        "pedestrian_distance": 6,
+                        "crosswalk_occupied": True,
+                        "blocked_zone": False
+                    },
+                    timeout=10
+                )
+
+                if response.status_code == 200:
+                    st.success("UC-02 Successful")
+                    st.json(response.json())
+                else:
+                    st.error(
+                        f"UC-02 failed: "
+                        f"HTTP {response.status_code}"
+                    )
+
+            except requests.RequestException as exc:
+                st.error(
+                    f"UC-02 API error: {exc}"
+                )
+
+        # UC-03
+        if st.button(
+            "Test UC-03 Pipeline",
+            use_container_width=True
+        ):
+            try:
+                response = requests.post(
+                    f"{API_URL}/api/uc3/pipeline/run",
+                    json={
+                        "risk_score": 90,
+                        "state": "STOP",
+                        "location_id": "intersection_01"
+                    },
+                    timeout=10
+                )
+
+                if response.status_code == 200:
+                    st.success("UC-03 Successful")
+                    st.json(response.json())
+                else:
+                    st.error(
+                        f"UC-03 failed: "
+                        f"HTTP {response.status_code}"
+                    )
+
+            except requests.RequestException as exc:
+                st.error(
+                    f"UC-03 API error: {exc}"
+                )
+
+    # --------------------------------------------------
+    # Apply Dashboard Filters
+    # --------------------------------------------------
 
     result = df.copy()
+
     if selected:
-        result = result[result["intersection"].isin(selected)]
+        result = result[
+            result["intersection"].isin(selected)
+        ]
+
     if states:
-        result = result[result["status"].isin(states)]
+        result = result[
+            result["status"].isin(states)
+        ]
+
     if directions:
-        result = result[result["movement_direction"].isin(directions)]
+        result = result[
+            result["movement_direction"].isin(directions)
+        ]
+
     return result
 
 
